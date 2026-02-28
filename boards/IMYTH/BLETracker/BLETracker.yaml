@@ -1,0 +1,10 @@
+identifier: BLETracker/nrf52840
+name: Bluetooth LE tracker using NINA-B302 + SAM-M10 of u-blox
+vendor: IMYTH
+type: mcu
+arch: arm
+ram: 256
+flash: 1024
+toolchain:
+  - zephyr
+supported: []

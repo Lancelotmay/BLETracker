@@ -1,0 +1,91 @@
+/dts-v1/;
+#include <nordic/nrf52840_qiaa.dtsi>
+#include <nordic/nrf52840_partition.dtsi>
+#include "BLETracker-pinctrl.dtsi"
+
+/ {
+	model = "Bluetooth LE tracker using NINA-B302 + SAM-M10 of u-blox";
+	compatible = "IMYTH,BLETracker";
+	leds {
+        compatible = "gpio-leds";
+        m10_led: led_0 {
+            gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+            label = "M10 Status LED";
+        };
+    };
+
+    m10_control {
+        compatible = "gpio-keys";
+        m10_pps: pps {
+            gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+            label = "M10 1PPS";
+        };
+        m10_reset: reset {
+            gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
+            label = "M10 RESET";
+        };
+    };
+	zephyr,user {
+		io-channels = <&adc 6>;
+	};
+};
+
+&reg1 {
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+
+&gpiote {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+/*  UART_RX on P1.13 */
+&gpio1 {
+    status = "okay";
+};
+
+/* ADC ：P0.30 @ AIN6 */
+&adc {
+    #address-cells = <1>;
+    #size-cells = <0>;
+	status = "okay";
+    channel@6 {
+        reg = <6>;
+        zephyr,gain = "ADC_GAIN_1_6";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+        zephyr,input-positive = <NRF_SAADC_AIN6>; /* P0.30 */
+		zephyr,resolution = <12>;
+    };
+};
+
+
+&uart0 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&i2c0 {
+	compatible = "nordic,nrf-twi";
+	status = "okay";
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-1 = <&i2c0_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	gnss: sam-m10@42 {
+        compatible = "i2c-device";
+        reg = <0x42>;
+        label = "SAM-M10";
+    };
+
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+

@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "ProProject_BLETracker_2024-03-17")(type "KiCad")(uri "$(KIPRJMOD)/BluetoothTracker.pretty")(options "")(descr ""))
+)
