@@ -4,8 +4,6 @@
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/i2c.h>
 
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/gap.h>
 #include "app_battery.h"
 #include "ble_core.h"
 
@@ -28,14 +26,9 @@ int main(void) {
         LOG_INF("I2C/GNSS not ready!\n");
     }
 
-    /* Enable Bluetooth stack */
-    err = bt_enable(NULL);
+    err = ble_init();
     if (err) {
-        return err;
-    }
-    err = ble_adv_start();
-    if (err) {
-        LOG_ERR("Failed to start advertising, err %d\n", err);
+        LOG_ERR("BLE init failed, err %d\n", err);
         return err;
     }
     /* Init battery monitoring */
