@@ -33,7 +33,7 @@ LOG_MODULE_REGISTER(ble_lns, LOG_LEVEL_INF);
 	 BLE_LNS_LOC_SPEED_HEADING_SOURCE)
 
 static uint32_t lns_feature;
-static const struct ble_lns_cb *lns_cb;
+static struct ble_lns_cb lns_cb;
 static const struct bt_gatt_attr *loc_speed_attr;
 
 static ssize_t read_ln_feature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
@@ -50,8 +50,8 @@ static void loc_speed_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t 
 
 	LOG_INF("LNS Location and Speed notifications %s", enabled ? "enabled" : "disabled");
 
-	if ((lns_cb != NULL) && (lns_cb->notify_changed != NULL)) {
-		lns_cb->notify_changed(enabled);
+	if (lns_cb.notify_changed != NULL) {
+		lns_cb.notify_changed(enabled);
 	}
 }
 
@@ -67,81 +67,6 @@ BT_GATT_SERVICE_DEFINE(lns_svc,
 static int validate_feature_bits(uint32_t feature_bits)
 {
 	if ((feature_bits & ~BLE_LNS_DEFINED_FEATURE_MASK) != 0U) {
-		return -EINVAL;
-	}
-
-	if ((feature_bits & ~BLE_LNS_IMPLEMENTED_FEATURE_MASK) != 0U) {
-		return -ENOTSUP;
-	}
-
-	return 0;
-}
-
-static int validate_loc_speed_flags(uint16_t flags)
-{
-	uint16_t pos_status;
-	uint16_t elevation_source;
-
-	if ((flags & ~BLE_LNS_LOC_SPEED_DEFINED_FLAGS_MASK) != 0U) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_INST_SPEED_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_INST_SPEED) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_TOTAL_DISTANCE_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_TOTAL_DISTANCE) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_LOCATION_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_LOCATION) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_ELEVATION_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_ELEVATION) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_HEADING_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_HEADING) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_ROLLING_TIME_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_ROLLING_TIME) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_UTC_TIME_PRESENT) &&
-	    ((lns_feature & BLE_LNS_FEAT_UTC_TIME) == 0U)) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_SPEED_DISTANCE_3D) &&
-	    (((lns_feature & BLE_LNS_FEAT_INST_SPEED) == 0U) ||
-	     ((lns_feature & BLE_LNS_FEAT_TOTAL_DISTANCE) == 0U))) {
-		return -EINVAL;
-	}
-
-	if ((flags & BLE_LNS_LOC_SPEED_HEADING_SOURCE) &&
-	    ((lns_feature & BLE_LNS_FEAT_HEADING) == 0U)) {
-		return -EINVAL;
-	}
-
-	elevation_source = (flags & BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_MASK) >>
-			   BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_SHIFT;
-	if ((elevation_source != BLE_LNS_ELEVATION_POSITIONING_SYSTEM) &&
-	    ((lns_feature & BLE_LNS_FEAT_ELEVATION) == 0U)) {
-		return -EINVAL;
-	}
-
-	pos_status = (flags & BLE_LNS_LOC_SPEED_POS_STATUS_MASK) >> BLE_LNS_LOC_SPEED_POS_STATUS_SHIFT;
-	if ((pos_status != BLE_LNS_POS_NO_POSITION) &&
-	    ((lns_feature & BLE_LNS_FEAT_POSITION_STATUS) == 0U)) {
 		return -EINVAL;
 	}
 
@@ -172,74 +97,109 @@ static void encode_s24(struct net_buf_simple *buf, int32_t value)
 
 static void encode_loc_speed(struct net_buf_simple *buf, const struct ble_lns_loc_speed *sample)
 {
-	uint16_t flags = sample->flags;
+	uint16_t in_flags = sample->flags & BLE_LNS_LOC_SPEED_DEFINED_FLAGS_MASK;
+	uint16_t flags = 0U;
+	bool inst_speed_encoded = false;
+	bool total_distance_encoded = false;
+	uint8_t *flags_ptr;
 
 	net_buf_simple_reset(buf);
-	net_buf_simple_add_le16(buf, flags);
+	flags_ptr = net_buf_simple_add(buf, sizeof(uint16_t));
+	flags_ptr[0] = 0U;
+	flags_ptr[1] = 0U;
 
-	if ((flags & BLE_LNS_LOC_SPEED_INST_SPEED_PRESENT) != 0U) {
+	if (((lns_feature & BLE_LNS_FEAT_INST_SPEED) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_INST_SPEED_PRESENT) != 0U)) {
 		net_buf_simple_add_le16(buf, sample->inst_speed);
+		flags |= BLE_LNS_LOC_SPEED_INST_SPEED_PRESENT;
+		inst_speed_encoded = true;
 	}
 
-	if ((flags & BLE_LNS_LOC_SPEED_TOTAL_DISTANCE_PRESENT) != 0U) {
+	if (((lns_feature & BLE_LNS_FEAT_TOTAL_DISTANCE) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_TOTAL_DISTANCE_PRESENT) != 0U)) {
 		encode_u24(buf, sample->total_distance);
+		flags |= BLE_LNS_LOC_SPEED_TOTAL_DISTANCE_PRESENT;
+		total_distance_encoded = true;
 	}
 
-	if ((flags & BLE_LNS_LOC_SPEED_LOCATION_PRESENT) != 0U) {
+	if (((lns_feature & BLE_LNS_FEAT_TOTAL_DISTANCE) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_SPEED_DISTANCE_3D) != 0U) &&
+	    inst_speed_encoded && total_distance_encoded) {
+		flags |= BLE_LNS_LOC_SPEED_SPEED_DISTANCE_3D;
+	}
+
+	if (((lns_feature & BLE_LNS_FEAT_LOCATION) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_LOCATION_PRESENT) != 0U)) {
 		net_buf_simple_add_le32(buf, sample->latitude);
 		net_buf_simple_add_le32(buf, sample->longitude);
+		flags |= BLE_LNS_LOC_SPEED_LOCATION_PRESENT;
 	}
 
-	if ((flags & BLE_LNS_LOC_SPEED_ELEVATION_PRESENT) != 0U) {
+	if ((lns_feature & BLE_LNS_FEAT_ELEVATION) != 0U) {
+		flags |= in_flags & BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_MASK;
+	}
+
+	if (((lns_feature & BLE_LNS_FEAT_ELEVATION) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_ELEVATION_PRESENT) != 0U)) {
 		encode_s24(buf, sample->elevation);
+		flags |= BLE_LNS_LOC_SPEED_ELEVATION_PRESENT;
 	}
 
-	if ((flags & BLE_LNS_LOC_SPEED_HEADING_PRESENT) != 0U) {
+	if ((lns_feature & BLE_LNS_FEAT_HEADING) != 0U) {
+		flags |= in_flags & BLE_LNS_LOC_SPEED_HEADING_SOURCE;
+	}
+
+	if (((lns_feature & BLE_LNS_FEAT_HEADING) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_HEADING_PRESENT) != 0U)) {
 		net_buf_simple_add_le16(buf, sample->heading);
+		flags |= BLE_LNS_LOC_SPEED_HEADING_PRESENT;
 	}
 
-	if ((flags & BLE_LNS_LOC_SPEED_ROLLING_TIME_PRESENT) != 0U) {
+	if (((lns_feature & BLE_LNS_FEAT_ROLLING_TIME) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_ROLLING_TIME_PRESENT) != 0U)) {
 		net_buf_simple_add_u8(buf, sample->rolling_time);
+		flags |= BLE_LNS_LOC_SPEED_ROLLING_TIME_PRESENT;
 	}
 
-	if ((flags & BLE_LNS_LOC_SPEED_UTC_TIME_PRESENT) != 0U) {
+	if (((lns_feature & BLE_LNS_FEAT_UTC_TIME) != 0U) &&
+	    ((in_flags & BLE_LNS_LOC_SPEED_UTC_TIME_PRESENT) != 0U)) {
 		encode_utc_time(buf, &sample->utc_time);
+		flags |= BLE_LNS_LOC_SPEED_UTC_TIME_PRESENT;
 	}
+
+	if ((lns_feature & BLE_LNS_FEAT_POSITION_STATUS) != 0U) {
+		flags |= in_flags & BLE_LNS_LOC_SPEED_POS_STATUS_MASK;
+	}
+
+	sys_put_le16(flags, flags_ptr);
 }
 
-struct ble_lns_conn_lookup {
-	struct bt_conn *conn;
-};
 
-static void find_first_conn(struct bt_conn *conn, void *user_data)
-{
-	struct ble_lns_conn_lookup *ctx = user_data;
-
-	if (ctx->conn == NULL) {
-		ctx->conn = bt_conn_ref(conn);
-	}
-}
-
-int ble_lns_init(uint32_t feature_bits)
+int ble_lns_init(uint32_t feature_bits, const struct ble_lns_cb *cb)
 {
 	int err = validate_feature_bits(feature_bits);
+	uint32_t effective_features;
 
 	if (err != 0) {
 		return err;
 	}
 
-	lns_feature = feature_bits;
-	lns_cb = NULL;
+	effective_features = feature_bits & BLE_LNS_DEFINED_FEATURE_MASK & BLE_LNS_IMPLEMENTED_FEATURE_MASK;
+	if (effective_features != feature_bits) {
+		LOG_WRN("Unsupported LNS feature bits were ignored (requested: 0x%08x, effective: 0x%08x)",
+			feature_bits, effective_features);
+	}
+
+	lns_feature = effective_features;
+	if (cb != NULL) {
+		lns_cb = *cb;
+	} else {
+		memset(&lns_cb, 0, sizeof(lns_cb));
+	}
 	loc_speed_attr = bt_gatt_find_by_uuid(lns_svc.attrs, lns_svc.attr_count, BT_UUID_GATT_LOC_SPD);
 	__ASSERT_NO_MSG(loc_speed_attr != NULL);
 
 	LOG_INF("LNS initialized (feature bits: 0x%08x)", lns_feature);
-	return 0;
-}
-
-int ble_lns_register_cb(const struct ble_lns_cb *cb)
-{
-	lns_cb = cb;
 	return 0;
 }
 
@@ -255,31 +215,6 @@ int ble_lns_notify_location_speed(struct bt_conn *conn, const struct ble_lns_loc
 	NET_BUF_SIMPLE_DEFINE(encoded, BLE_LNS_LOC_SPEED_MAX_LEN);
 	const struct bt_gatt_attr *attr = loc_speed_attr;
 
-	if (k_is_in_isr()) {
-		return -EWOULDBLOCK;
-	}
-
-	if (conn == NULL) {
-		return -EINVAL;
-	}
-
-	if (attr == NULL) {
-		return -EIO;
-	}
-
-	if (sample == NULL) {
-		return -EINVAL;
-	}
-
-	err = validate_loc_speed_flags(sample->flags);
-	if (err != 0) {
-		return err;
-	}
-
-	if (!bt_gatt_is_subscribed(conn, attr, BT_GATT_CCC_NOTIFY)) {
-		return -EAGAIN;
-	}
-
 	encode_loc_speed(&encoded, sample);
 	mtu = bt_gatt_get_mtu(conn);
 
@@ -288,25 +223,5 @@ int ble_lns_notify_location_speed(struct bt_conn *conn, const struct ble_lns_loc
 	}
 
 	err = bt_gatt_notify(conn, attr, encoded.data, encoded.len);
-	if (err == -ENOTCONN) {
-		return -EAGAIN;
-	}
-
-	return err;
-}
-
-int ble_lns_update_location_speed(const struct ble_lns_loc_speed *sample)
-{
-	struct ble_lns_conn_lookup ctx = { 0 };
-	int err;
-
-	bt_conn_foreach(BT_CONN_TYPE_LE, find_first_conn, &ctx);
-	if (ctx.conn == NULL) {
-		return -EAGAIN;
-	}
-
-	err = ble_lns_notify_location_speed(ctx.conn, sample);
-	bt_conn_unref(ctx.conn);
-
 	return err;
 }

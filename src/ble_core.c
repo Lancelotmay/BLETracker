@@ -100,6 +100,15 @@ static void on_le_param_updated(struct bt_conn* conn,
             connection_interval, latency, supervision_timeout);
 }
 
+static void lns_on_notify_changed(bool enabled)
+{
+    LOG_INF("LNS Service: notifications are %s", enabled ? "ENABLED" : "DISABLED");
+}
+
+static const struct ble_lns_cb lns_callbacks = {
+    .notify_changed = lns_on_notify_changed,
+};
+
 BT_CONN_CB_DEFINE(conn_callbacks) = {
     .connected = on_connected,
     .disconnected = on_disconnected,
@@ -127,7 +136,7 @@ int ble_init(void)
         return err;
     }
 
-    err = ble_lns_init(BLE_LNS_DEFAULT_FEATURES);
+    err = ble_lns_init(BLE_LNS_DEFAULT_FEATURES, &lns_callbacks);
     if (err != 0) {
         LOG_ERR("Failed to initialize LNS service (err %d)", err);
         return err;

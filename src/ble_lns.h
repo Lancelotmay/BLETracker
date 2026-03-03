@@ -48,6 +48,8 @@ enum ble_lns_position_status {
 	BLE_LNS_POS_LAST_KNOWN = 3,
 };
 
+
+
 /** @brief Location and Speed Flags field bit definitions. */
 enum ble_lns_loc_speed_flags {
 	BLE_LNS_LOC_SPEED_INST_SPEED_PRESENT = BIT(0),
@@ -131,26 +133,13 @@ struct ble_lns_cb {
  * @brief Initialize local LNS service state.
  *
  * @param feature_bits Enabled feature bits for LN Feature characteristic.
+ * @param cb           Callback structure or NULL.
  *
  * @retval 0 on success.
  * @retval -EINVAL if @p feature_bits contains unsupported bits.
- * @retval -ENOTSUP if requested features are not implemented by this build.
  */
-int ble_lns_init(uint32_t feature_bits);
+int ble_lns_init(uint32_t feature_bits, const struct ble_lns_cb *cb);
 
-/**
- * @brief Register callback for LNS events.
- *
- * @param cb Callback structure or NULL to clear callback.
- *
- * @retval 0 on success.
- */
-int ble_lns_register_cb(const struct ble_lns_cb *cb);
-
-/**
- * @brief Get current LN Feature value.
- */
-uint32_t ble_lns_get_feature(void);
 
 /**
  * @brief Try to notify a Location and Speed sample on a specific connection.
@@ -161,25 +150,10 @@ uint32_t ble_lns_get_feature(void);
  * @param sample Sample data to encode.
  *
  * @retval 0 on success.
- * @retval -EAGAIN if notification is not enabled.
- * @retval -EINVAL on invalid parameters.
  * @retval -EMSGSIZE if encoded payload does not fit current ATT MTU.
  */
 int ble_lns_notify_location_speed(struct bt_conn *conn, const struct ble_lns_loc_speed *sample);
 
-/**
- * @brief Try to notify a Location and Speed sample on the current connection.
- *
- * This call attempts immediate notification.
- *
- * @param sample Sample data to encode.
- *
- * @retval 0 on success.
- * @retval -EAGAIN if not connected or notification is not enabled.
- * @retval -EINVAL on invalid parameters.
- * @retval -EMSGSIZE if encoded payload does not fit current ATT MTU.
- */
-int ble_lns_update_location_speed(const struct ble_lns_loc_speed *sample);
 
 #ifdef __cplusplus
 }
