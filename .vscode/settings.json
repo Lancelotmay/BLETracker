@@ -1,5 +1,16 @@
 {
     "nrf-connect.applications": [
         "${workspaceFolder}"
-    ]
+    ],
+"clangd.arguments": [
+        "--compile-commands-dir=build/BLETracker",
+        "--all-scopes-completion",
+        "--completion-style=detailed",
+        "--header-insertion=never",
+        "--query-driver=/home/lance/ncs/toolchains/*/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc"
+    ],
+    "nrf-connect.debugging.bindings": {
+        "${workspaceFolder}/build": "Launch BLETracker/build",
+        "${workspaceFolder}/build/BLETracker": "Launch BLETracker/build/BLETracker"
+    }
 }

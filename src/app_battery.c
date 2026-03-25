@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Lancelot MEI
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
+
 #include "app_battery.h"
 #include <zephyr/bluetooth/services/bas.h>
 #include <zephyr/drivers/adc.h>

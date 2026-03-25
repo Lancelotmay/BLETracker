@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Lancelot MEI
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
+
 #ifndef APP_BATTERY_H
 #define APP_BATTERY_H
 

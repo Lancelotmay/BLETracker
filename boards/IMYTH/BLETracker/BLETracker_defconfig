@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Lancelot MEI
+# SPDX-License-Identifier: GPL-2.0-only
+
 # Enable MPU
 CONFIG_ARM_MPU=y
 

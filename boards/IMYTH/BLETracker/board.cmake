@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Lancelot MEI
+# SPDX-License-Identifier: GPL-2.0-only
+
 set(OPENOCD_NRF5_SUBFAMILY "nrf52")
 board_runner_args(jlink "--device=nRF52840_xxAA" "--speed=4000")
 board_runner_args(pyocd "--target=nrf52840" "--frequency=4000000")

@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Lancelot MEI
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
+
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
 #include <nordic/nrf52840_partition.dtsi>
@@ -12,6 +17,10 @@
             gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
             label = "M10 Status LED";
         };
+        m10_reset: reset {
+            gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
+            label = "M10 RESET";
+        };
     };
 
     m10_control {
@@ -20,10 +29,7 @@
             gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
             label = "M10 1PPS";
         };
-        m10_reset: reset {
-            gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
-            label = "M10 RESET";
-        };
+
     };
 	zephyr,user {
 		io-channels = <&adc 6>;
@@ -74,7 +80,7 @@
 };
 
 &i2c0 {
-	compatible = "nordic,nrf-twi";
+	compatible = "nordic,nrf-twim";
 	status = "okay";
 	pinctrl-0 = <&i2c0_default>;
 	pinctrl-1 = <&i2c0_sleep>;
@@ -88,4 +94,3 @@
 
 	clock-frequency = <I2C_BITRATE_FAST>;
 };
-

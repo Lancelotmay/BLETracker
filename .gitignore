@@ -1,2 +1,4 @@
 build/
 docs/external/
+.vscode/
+.DS_Store

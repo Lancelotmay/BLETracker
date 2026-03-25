@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2026
- *
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2026 Lancelot MEI
+ * SPDX-License-Identifier: GPL-2.0-only
  */
 
 #ifndef BLE_LNS_H_
@@ -71,7 +70,7 @@ enum ble_lns_loc_speed_flags {
 	((((uint16_t)(v)) << BLE_LNS_LOC_SPEED_POS_STATUS_SHIFT) & BLE_LNS_LOC_SPEED_POS_STATUS_MASK)
 #define BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_ENCODE(v) \
 	((((uint16_t)(v)) << BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_SHIFT) & \
-	 BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_MASK)
+    BLE_LNS_LOC_SPEED_ELEVATION_SOURCE_MASK)
 
 /** @brief Elevation source values encoded in Location and Speed Flags bits 10..11. */
 enum ble_lns_elevation_source {
