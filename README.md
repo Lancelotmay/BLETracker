@@ -42,7 +42,7 @@ BLETracker acts as an external GNSS sensor over BLE, offloading positioning whil
 
 - Schematics and PCB design files are located under `hardware/` (KiCad sources).
 
-[BLETracker device](docs/images/device.jpg)
+![BLETracker device](docs/images/device.jpg)
 ## Repository layout
 
 - `src/`: application firmware, BLE services, GNSS/UBX handling, and hardware glue.
